@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
@@ -6,28 +6,26 @@ socketio = SocketIO(app, cors_allowed_origins="*", ping_timeout=20, ping_interva
 
 # Armazena o último frame recebido para cada câmera
 last_frames = {
-    'camera_0': None,
-    'camera_1': None
+    'camera': None
 }
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/camera0')
+@app.route('/camera')
 def camera0():
-    """Rota para acessar o vídeo da câmera 0."""
+    """Rota para acessar o vídeo."""
     return render_template('camera0.html')
 
-@app.route('/camera1')
-def camera1():
-    """Rota para acessar o vídeo da câmera 1."""
-    return render_template('camera1.html')
-
-@socketio.on('video_frame')
-def handle_video_frame(data):
+@app.route('/video_frame', methods=['POST'])
+def handle_video_frame():
     """Recebe frames de vídeo e os armazena."""
-    global last_frames
+    data = request.get_json()
+
+    if 'camera_id' not in data or 'frame' not in data:
+        return jsonify({'error': 'Invalid data'}), 400
+
     camera_id = data['camera_id']
     frame = data['frame']
 
@@ -38,6 +36,9 @@ def handle_video_frame(data):
     
         # Emitir o frame para todos os clientes conectados, filtrando pela câmera
         socketio.emit(f'new_frame_{camera_id}', {'frame': frame})
+        return jsonify({'status': 'success'}), 200
+    else:
+        return jsonify({'error': 'Invalid camera_id'}), 400
 
 @socketio.on('connect')
 def handle_connect():
