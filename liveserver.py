@@ -21,11 +21,6 @@ def camera0():
 @app.route('/video_frame', methods=['POST'])
 def handle_video_frame():
     """Recebe frames de vídeo e os armazena."""
-    data = request.get_json()
-
-    if 'camera_id' not in data or 'frame' not in data:
-        return jsonify({'error': 'Invalid data'}), 400
-
     camera_id = data['camera_id']
     frame = data['frame']
 
@@ -48,5 +43,10 @@ def handle_connect():
         if frame:
             emit(f'new_frame_{camera_id}', {'frame': frame})
 
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('Cliente desconectado.')
+
 if __name__ == '__main__':
+    # Iniciar o servidor Flask-SocketIO para escutar em todas as interfaces de rede
     socketio.run(app, host='0.0.0.0', port=5001)
